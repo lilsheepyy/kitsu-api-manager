@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Kitsu API</title>
+    <style>
+        body {
+            font-family: "Unbounded", sans-serif;
+            background-image: radial-gradient(#d22248 0.4px, transparent 0.9px), radial-gradient(#d22248 0.4px, #0a0a0a 0.9px);
+            background-size: 36px 36px;
+            background-position: 0 0, 18px 18px;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .welcome-container {
+            background: #111111;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        p {
+            color: #d0d0d0;
+            font-weight: bold;
+            padding: 20px;
+        }
+
+        .welcome-container::after {
+            content: '';
+            display: block;
+            width: 50px;
+            height: 4px;
+            background-color: #d22248;
+            margin: 20px auto 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <h1>Welcome to <span style="color: #d22248;">Kitsu API</span></h1>
+        <p>Your gateway to accessing and managing Kitsu API.</p>
+    </div>
+</body>
+</html>
