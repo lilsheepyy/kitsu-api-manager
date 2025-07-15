@@ -2,10 +2,7 @@
     "globalMaxConcurrents": 3,
     "sessionKey": "your-secret-key",
     "database": {
-        "user": "",
-        "password": "",
-        "host": "localhost:3306",
-        "name": ""
+        "path": "assets/database.db"
     },
     "blacklist": {
         "ips": ["1.1.1.1", "8.8.8.8"],

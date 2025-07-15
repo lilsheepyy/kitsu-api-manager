@@ -7,25 +7,14 @@
 
 `sudo apt-get update -y && sudo apt-get upgrade -y`
 
-`sudo apt-get install php sshpass dos2unix apache2 phpmyadmin mysql-server mysql-client -y`
-
-* On the first screen, click the enter key with the first option selected "apache2"
-* On the second screen, click the enter key with the first option selected "`<Yes>`"
-* On the third screen, input a 32 character varchar password ending in "!?" such as "ALMjX5R2AYqRgRS5aDnOK4dNwbSmKVgh!?"
-
-`sudo ln -s /usr/share/phpmyadmin/ /var/www/html`
-
-`sudo mysql`
+`sudo apt-get install php sshpass dos2unix sqlite3 -y`
 
 ## **Database Setup:**
 
-`CREATE DATABASE {DB_TABLE};`
-`CREATE USER '{DB_USERNAME}'@'localhost' IDENTIFIED BY '{DB_PASSWORD}';`
-`GRANT ALL PRIVILEGES ON * . * TO '{DB_USERNAME}'@'localhost'; FLUSH PRIVILEGES;`
-`use {DB_TABLE};`
-`source {DB_FILEPATH}; exit`
-
-***Now modify the config.json with the info of your database.***
+This project now uses a local sqlite3 database which is created
+automatically on first run. You only need the `sqlite3` package
+installed. The default location of the database file is defined in
+`assets/config.json`.
 
 Stop apache2 by doing:
 
@@ -43,9 +32,7 @@ and also, inside the manager folder, do:
 
 ## **Clearing logs:**
 
-I also left a .sh file that will help you clear logs (for god sake do this every few days).
-
-Modify it with your database information before using it
+I also left a .sh file that will help you clear logs (for god sake do this every few days). It works with the sqlite3 database directly so no additional configuration is required.
 
  If it doesnt work or gives any errors, use dos2unix:
 

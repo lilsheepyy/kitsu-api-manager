@@ -1,13 +1,10 @@
 #!/bin/bash
 
-DB_USER=""
-DB_PASSWORD=""
-DB_NAME=""
-DB_HOST="localhost"
+DB_PATH="assets/database.db"
 
 SQL_QUERY="DELETE FROM logs;"
 
-mysql -u $DB_USER -p$DB_PASSWORD -h $DB_HOST $DB_NAME -e "$SQL_QUERY"
+sqlite3 "$DB_PATH" "$SQL_QUERY"
 
 if [ $? -eq 0 ]; then
   echo "Successfully deleted all content from the logs table."

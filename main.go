@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // TODO: Add api support
@@ -57,10 +57,7 @@ type BlacklistConfig struct {
 }
 
 type DatabaseConfig struct {
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Host     string `json:"host"`
-	Name     string `json:"name"`
+	Path string `json:"path"`
 }
 
 type ServerConfig struct {
@@ -92,11 +89,13 @@ func init() {
 		log.Fatalf("Error parsing config file: %v", err)
 	}
 
-	// Initialize the database connection
-	db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s",
-		cfg.Database.User, cfg.Database.Password, cfg.Database.Host, cfg.Database.Name))
+	// Initialize the database connection using sqlite3
+	db, err = sql.Open("sqlite3", cfg.Database.Path)
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
+	}
+	if err := createTables(); err != nil {
+		log.Fatalf("Error creating tables: %v", err)
 	}
 	log.Println("\033[35mConnected to the database\033[0m")
 
@@ -542,4 +541,35 @@ func executeCommands(target string, port, duration int, method string, logID int
 func updateEndTime(logID int) error {
 	_, err := db.Exec("UPDATE logs SET end_time = ? WHERE id = ?", time.Now().Unix(), logID)
 	return err
+}
+
+func createTables() error {
+	logsTable := `CREATE TABLE IF NOT EXISTS logs (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               username TEXT NOT NULL,
+               host TEXT NOT NULL,
+               port INTEGER NOT NULL,
+               duration INTEGER NOT NULL,
+               method TEXT NOT NULL,
+               time_sent INTEGER NOT NULL,
+               end_time INTEGER
+       );`
+
+	usersTable := `CREATE TABLE IF NOT EXISTS users (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               username TEXT NOT NULL,
+               secret TEXT NOT NULL,
+               maxduration INTEGER NOT NULL,
+               concurrents INTEGER NOT NULL,
+               expire TEXT NOT NULL,
+               powersaving TEXT NOT NULL
+       );`
+
+	if _, err := db.Exec(logsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(usersTable); err != nil {
+		return err
+	}
+	return nil
 }
