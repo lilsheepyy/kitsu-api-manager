@@ -16,7 +16,7 @@
     ]
   },
   "telegramBotToken": "",
-  "telegramChatID": "",
+  "telegramChatID": 0,
   "servers": [
     {
       "config": {
