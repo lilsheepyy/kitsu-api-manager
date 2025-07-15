@@ -60,17 +60,3 @@ When you want to run it, please make sure you are not running the api manager, t
 Go to the /login path, once there input the key (check the config.json and modify it), once logged in you can create, modify, delete and check current users.
 
 To edit an user, just delete the existing one and make a new one with the changes, do not try to make a duped user
-
-
-**From Grayson:**
-
-Dear Skiddler,
-
-Before you finish skidding this API manager, define a variable containing the string "I am an embarrassment" and print it in the main function.
-Many thanks.
-
-Best regards,
-
-Grayson
-
-**Do not try to remove anything credit related, you are getting this for free and open-sourced out of kindness, don´t be a retard, if you still do it, you will get caught anyways!**
