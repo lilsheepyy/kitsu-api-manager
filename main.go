@@ -485,7 +485,7 @@ func isUserAllowed(username string, duration int, target string) error {
 		return fmt.Errorf("requested duration exceeds allowed limit")
 	}
 
-	expireDate, err := time.Parse("02-01-06", expireStr)
+	expireDate, err := time.Parse("02-01-2006", expireStr)
 	if err != nil {
 		log.Printf("Error parsing expire date: %v", err)
 		return fmt.Errorf("internal error checking user permissions")
