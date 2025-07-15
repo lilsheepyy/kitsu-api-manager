@@ -59,6 +59,7 @@ type BlacklistConfig struct {
 	IPs     []string `json:"ips"`
 	Subnets []string `json:"subnets"`
 	Ports   []int    `json:"ports"`
+	TLDs    []string `json:"tlds"`
 }
 
 type DatabaseConfig struct {
@@ -351,52 +352,49 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 
 	// Validate input incase someone tries to send bad characters!
 	if BannedCharacters(target, port, duration, method, username, key) {
-		http.Error(w, "Input contains banned characters", http.StatusBadRequest)
+		jsonError(w, http.StatusBadRequest)
 		return
 	}
 
 	if target == "" || port == "" || duration == "" || method == "" || username == "" || key == "" {
-		http.Error(w, "Missing parameters", http.StatusBadRequest)
+		jsonError(w, http.StatusBadRequest)
 		return
 	}
 
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		http.Error(w, "Invalid port", http.StatusBadRequest)
+		jsonError(w, http.StatusBadRequest)
 		return
 	}
 
 	durationInt, err := strconv.Atoi(duration)
 	if err != nil {
-		http.Error(w, "Invalid duration", http.StatusBadRequest)
+		jsonError(w, http.StatusBadRequest)
 		return
 	}
 
 	if !isValidUser(username, key) {
-		http.Error(w, "Invalid username or key", http.StatusUnauthorized)
+		jsonError(w, http.StatusUnauthorized)
 		return
 	}
 
 	if isIPBlacklisted(target, cfg.Blacklist.IPs, cfg.Blacklist.Subnets) {
-		http.Error(w, "Target IP is blacklisted", http.StatusForbidden)
+		jsonError(w, http.StatusForbidden)
+		return
+	}
+
+	if isTLDBlacklisted(target, cfg.Blacklist.TLDs) {
+		jsonError(w, http.StatusForbidden)
 		return
 	}
 
 	if isPortBlacklisted(portInt, cfg.Blacklist.Ports) {
-		http.Error(w, "Target port is blacklisted", http.StatusForbidden)
+		jsonError(w, http.StatusForbidden)
 		return
 	}
 
 	if err := isUserAllowed(username, durationInt, target); err != nil {
-		if err.Error() == "Maximum number of concurrent attacks for user exceeded" {
-			http.Error(w, err.Error(), http.StatusForbidden)
-		} else if err.Error() == "maximum global attacks reached" {
-			http.Error(w, err.Error(), http.StatusForbidden)
-		} else if err.Error() == "User has an active attack to this target in powersaving mode" {
-			http.Error(w, err.Error(), http.StatusForbidden)
-		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+		jsonError(w, http.StatusForbidden)
 		return
 	}
 
@@ -404,7 +402,7 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Failed to log request for user %s. Target: %s, Port: %d, Duration: %d, Method: %s. Error: %v",
 			username, target, portInt, durationInt, method, err)
-		http.Error(w, "Failed to log request", http.StatusInternalServerError)
+		jsonError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -418,9 +416,16 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	response := fmt.Sprintf("Attack started:\nTarget: %s\nPort: %d\nDuration: %d seconds\nMethod: %s", target, portInt, durationInt, method)
-	w.Write([]byte(response))
+	resp := struct {
+		Error    bool   `json:"error"`
+		Target   string `json:"target"`
+		Port     int    `json:"port"`
+		Duration int    `json:"duration"`
+		Method   string `json:"method"`
+	}{false, target, portInt, durationInt, method}
+	json.NewEncoder(w).Encode(resp)
 
 	go func() {
 		if err := executeCommands(target, portInt, durationInt, method, logID); err != nil {
@@ -430,6 +435,14 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Failed to update end time for logID %d. Error: %v", logID, err)
 		}
 	}()
+}
+
+func jsonError(w http.ResponseWriter, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(struct {
+		Error bool `json:"error"`
+	}{true})
 }
 
 func BannedCharacters(values ...string) bool {
@@ -554,6 +567,17 @@ func isIPBlacklisted(target string, blacklistIPs []string, blacklistSubnets []st
 		}
 	}
 
+	return false
+}
+
+func isTLDBlacklisted(target string, blacklistTLDs []string) bool {
+	targetLower := strings.ToLower(target)
+	for _, tld := range blacklistTLDs {
+		cleanTLD := strings.ToLower(strings.TrimPrefix(tld, "."))
+		if strings.HasSuffix(targetLower, "."+cleanTLD) {
+			return true
+		}
+	}
 	return false
 }
 
