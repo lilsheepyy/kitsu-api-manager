@@ -3,6 +3,7 @@ package main
 // ! Fully made by t.me/lilsheepyy
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -18,6 +20,8 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
 )
 
 // TODO: Add api support
@@ -74,7 +78,76 @@ type MethodConfig struct {
 	Command string `json:"command"`
 }
 
-var bot *tgbotapi.BotAPI
+var (
+	bot *tgbotapi.BotAPI
+)
+
+const (
+	licenseFile      = "license.key"
+	publicKeyFile    = "license_public.asc"
+	licenseUserAgent = "WoolCNC-License-Client"
+	licenseServerURL = "http://54.36.208.152:1234"
+)
+
+func validateLicense() error {
+	licData, err := os.ReadFile(licenseFile)
+	if err != nil {
+		return fmt.Errorf("read license file: %w", err)
+	}
+
+	keyFile, err := os.Open(publicKeyFile)
+	if err != nil {
+		return fmt.Errorf("open public key: %w", err)
+	}
+	defer keyFile.Close()
+
+	entities, err := openpgp.ReadArmoredKeyRing(keyFile)
+	if err != nil {
+		return fmt.Errorf("read public key: %w", err)
+	}
+
+	var buf bytes.Buffer
+	aw, err := armor.Encode(&buf, "PGP MESSAGE", nil)
+	if err != nil {
+		return fmt.Errorf("armor encode: %w", err)
+	}
+	w, err := openpgp.Encrypt(aw, entities, nil, nil, nil)
+	if err != nil {
+		return fmt.Errorf("encrypt: %w", err)
+	}
+	if _, err := w.Write(licData); err != nil {
+		return fmt.Errorf("write encrypted: %w", err)
+	}
+	w.Close()
+	aw.Close()
+
+	serverID, _ := os.Hostname()
+	params := url.Values{}
+	params.Set("data", buf.String())
+	params.Set("server", serverID)
+
+	reqURL := fmt.Sprintf("%s/validate?%s", licenseServerURL, params.Encode())
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", licenseUserAgent)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var res struct{ Valid bool }
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return fmt.Errorf("decode response: %w", err)
+	}
+	if !res.Valid {
+		return fmt.Errorf("invalid license")
+	}
+	return nil
+}
 
 func init() {
 
@@ -87,6 +160,10 @@ func init() {
 	err = json.Unmarshal(file, &cfg)
 	if err != nil {
 		log.Fatalf("Error parsing config file: %v", err)
+	}
+
+	if err := validateLicense(); err != nil {
+		log.Fatalf("License validation failed: %v", err)
 	}
 
 	// Initialize the database connection using sqlite3
