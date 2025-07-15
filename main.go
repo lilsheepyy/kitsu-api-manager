@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -74,8 +75,9 @@ type ServerConfig struct {
 }
 
 type MethodConfig struct {
-	Name    string `json:"name"`
-	Command string `json:"command"`
+	Name    string   `json:"name"`
+	Command string   `json:"command"`
+	APIs    []string `json:"apis"`
 }
 
 var (
@@ -580,10 +582,14 @@ func logRequest(username, target string, port, duration int, method string) (int
 }
 
 func executeCommands(target string, port, duration int, method string, logID int) error {
-	var cmdTemplate string
+	var (
+		cmdTemplate  string
+		apiTemplates []string
+	)
 	for _, methodCfg := range cfg.Methods {
 		if methodCfg.Name == method {
 			cmdTemplate = methodCfg.Command
+			apiTemplates = methodCfg.APIs
 			break
 		}
 	}
@@ -594,6 +600,7 @@ func executeCommands(target string, port, duration int, method string, logID int
 	cmd := strings.ReplaceAll(cmdTemplate, "{IP}", target)
 	cmd = strings.ReplaceAll(cmd, "{PORT}", strconv.Itoa(port))
 	cmd = strings.ReplaceAll(cmd, "{DURATION}", strconv.Itoa(duration))
+	methodUpper := strings.ToUpper(method)
 
 	for _, serverCfg := range cfg.Servers {
 		server := serverCfg.Config
@@ -616,6 +623,19 @@ func executeCommands(target string, port, duration int, method string, logID int
 		if err != nil {
 			return fmt.Errorf("failed to execute command on server %s: %w. Output: %s", server.Host, err, string(output))
 		}
+	}
+
+	for _, apiT := range apiTemplates {
+		apiURL := strings.ReplaceAll(apiT, "{IP}", target)
+		apiURL = strings.ReplaceAll(apiURL, "{PORT}", strconv.Itoa(port))
+		apiURL = strings.ReplaceAll(apiURL, "{DURATION}", strconv.Itoa(duration))
+		apiURL = strings.ReplaceAll(apiURL, "{METHOD}", methodUpper)
+		resp, err := http.Get(apiURL)
+		if err != nil {
+			return fmt.Errorf("failed to call api %s: %w", apiURL, err)
+		}
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
 	}
 
 	time.Sleep(time.Duration(duration) * time.Second)
