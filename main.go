@@ -129,13 +129,13 @@ func validateLicense() error {
 	reqURL := fmt.Sprintf("%s/validate?%s", licenseServerURL, params.Encode())
 	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("request failed")
 	}
 	req.Header.Set("User-Agent", licenseUserAgent)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("request failed")
 	}
 	defer resp.Body.Close()
 
@@ -163,7 +163,7 @@ func init() {
 	}
 
 	if err := validateLicense(); err != nil {
-		log.Fatalf("License validation failed: %v", err)
+		log.Fatal("License validation failed")
 	}
 
 	// Initialize the database connection using sqlite3
