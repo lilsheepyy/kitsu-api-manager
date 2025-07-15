@@ -30,6 +30,13 @@ and also, inside the manager folder, do:
 
 `screen ./kitsumanager`
 
+### Telegram Notifications (optional)
+
+If you want to receive Telegram alerts when attacks are triggered, set the
+`telegramBotToken` and `telegramChatID` fields in `assets/config.json`.
+Leaving either of these blank will disable Telegram integration and the
+application will still run normally.
+
 ## **Clearing logs:**
 
 I also left a .sh file that will help you clear logs (for god sake do this every few days). It works with the sqlite3 database directly so no additional configuration is required.

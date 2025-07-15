@@ -176,10 +176,14 @@ func init() {
 	}
 	log.Println("\033[35mConnected to the database\033[0m")
 
-	// Initialize the Telegram bot
-	bot, err = tgbotapi.NewBotAPI(cfg.TelegramBotToken)
-	if err != nil {
-		log.Fatalf("Error creating Telegram bot: %v", err)
+	// Initialize the Telegram bot if token is provided
+	if cfg.TelegramBotToken != "" {
+		bot, err = tgbotapi.NewBotAPI(cfg.TelegramBotToken)
+		if err != nil {
+			log.Printf("Error creating Telegram bot: %v", err)
+		}
+	} else {
+		log.Println("Telegram bot token not provided, notifications disabled")
 	}
 }
 
@@ -402,11 +406,15 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send notification to Telegram
-	msg := fmt.Sprintf("New Attack:\nUser: %s\nTarget: %s\nPort: %d\nDuration: %d seconds\nMethod: %s",
-		username, target, portInt, durationInt, method)
-	telegramMsg := tgbotapi.NewMessage(cfg.TelegramChatID, msg)
-	bot.Send(telegramMsg)
+	// Send notification to Telegram if bot is configured
+	if bot != nil && cfg.TelegramChatID != 0 {
+		msg := fmt.Sprintf("New Attack:\nUser: %s\nTarget: %s\nPort: %d\nDuration: %d seconds\nMethod: %s",
+			username, target, portInt, durationInt, method)
+		telegramMsg := tgbotapi.NewMessage(cfg.TelegramChatID, msg)
+		if _, err := bot.Send(telegramMsg); err != nil {
+			log.Printf("Failed to send Telegram message: %v", err)
+		}
+	}
 
 	w.WriteHeader(http.StatusOK)
 	response := fmt.Sprintf("Attack started:\nTarget: %s\nPort: %d\nDuration: %d seconds\nMethod: %s", target, portInt, durationInt, method)
