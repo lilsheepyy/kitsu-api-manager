@@ -37,6 +37,13 @@ If you want to receive Telegram alerts when attacks are triggered, set the
 Leaving either of these blank will disable Telegram integration and the
 application will still run normally.
 
+### API Requests
+
+Each method in `assets/config.json` can optionally include an `apis` array.
+When an attack is triggered, the manager will send a GET request to every URL
+listed in that array. Placeholders `{IP}`, `{PORT}`, `{DURATION}` and
+`{METHOD}` will be replaced automatically.
+
 ## **Clearing logs:**
 
 I also left a .sh file that will help you clear logs (for god sake do this every few days). It works with the sqlite3 database directly so no additional configuration is required.
