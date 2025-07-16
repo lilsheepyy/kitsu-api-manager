@@ -37,6 +37,13 @@ If you want to receive Telegram alerts when attacks are triggered, set the
 Leaving either of these blank will disable Telegram integration and the
 application will still run normally.
 
+### Server Settings
+
+The manager listens on port `80` by default. Update the `listenPort` field in
+`assets/config.json` to change this. To enable HTTPS, provide paths to your SSL
+certificate and key using the `sslCertPath` and `sslKeyPath` fields. When both
+are set the application will serve traffic over TLS.
+
 ### API Requests
 
 Each method in `assets/config.json` can optionally include an `apis` array.

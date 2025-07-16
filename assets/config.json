@@ -20,6 +20,9 @@
   },
   "telegramBotToken": "",
   "telegramChatID": 0,
+  "listenPort": 80,
+  "sslCertPath": "",
+  "sslKeyPath": "",
   "servers": [
     {
       "config": {
