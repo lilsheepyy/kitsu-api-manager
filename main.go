@@ -668,14 +668,15 @@ func executeCommands(target string, port, duration int, method string, logID int
 
 	for _, apiT := range apiTemplates {
 		apiURL := replacer.Replace(apiT)
+		log.Printf("calling API: %s", apiURL)
 		resp, err := http.Get(apiURL)
 		if err != nil {
 			log.Printf("failed to call api %s: %v", apiURL, err)
 			continue
 		}
+		log.Printf("api %s responded with status %s", apiURL, resp.Status)
 		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
-		fmt.Println(resp.StatusCode)
 	}
 
 	time.Sleep(time.Duration(duration) * time.Second)
